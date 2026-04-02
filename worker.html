@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>シフト確認</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f5f1;--surface:#fff;--surface2:#f0efe9;--border:#e2e0d6;
+  --text:#1a1916;--text2:#6b6860;--text3:#b0ada4;
+  --green:#1a7a56;--green-bg:#eaf4ee;--green-bd:#b8dfc9;
+  --blue:#1a4fa0;--blue-bg:#eaf0fb;--blue-bd:#b8cef0;
+  --amber:#8a5c00;--amber-bg:#fdf4e3;--amber-bd:#f0d898;
+  --red:#b52b20;
+  --r:12px;--rsm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:54px;background:var(--surface);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;gap:10px;flex-wrap:wrap}
+.topbar-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.badge{font-size:10px;padding:2px 8px;border-radius:999px;font-weight:500}
+.badge-worker{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
+.last-update{font-size:11px;color:var(--text3)}
+
+.main{padding:20px;max-width:700px;margin:0 auto}
+
+/* Month nav */
+.cal-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.cal-title{font-size:18px;font-weight:700}
+.cal-nav button{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:5px 14px;cursor:pointer;font-size:15px;color:var(--text)}
+.cal-nav button:hover{background:var(--surface2)}
+
+/* No data */
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty .icon{font-size:40px;margin-bottom:12px}
+.empty p{font-size:14px;line-height:1.7}
+
+/* Shift cards */
+.shift-list{display:flex;flex-direction:column;gap:12px}
+
+.shift-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden}
+.shift-date-bar{
+  background:var(--green-bg);border-bottom:1px solid var(--green-bd);
+  padding:10px 16px;display:flex;align-items:baseline;gap:10px}
+.shift-date-num{font-size:22px;font-weight:700;color:var(--green)}
+.shift-date-sub{font-size:13px;color:var(--green);opacity:.7}
+.shift-workers{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.shift-worker-row{display:flex;align-items:center;gap:10px}
+.worker-avatar{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0}
+.avatar-A{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd)}
+.avatar-B{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
+.worker-detail{}
+.worker-name{font-size:13px;font-weight:500;margin-bottom:1px}
+.worker-time{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2)}
+
+/* Month calendar view (compact) */
+.mcal{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface);margin-bottom:24px}
+.mcal-head{display:grid;grid-template-columns:repeat(7,1fr);background:var(--surface2);border-bottom:1px solid var(--border)}
+.mcal-dn{padding:8px 4px;text-align:center;font-size:11px;color:var(--text2);font-weight:500}
+.mcal-dn.sat{color:var(--blue)}
+.mcal-dn.sun{color:var(--red)}
+.mcal-body{display:grid;grid-template-columns:repeat(7,1fr)}
+.mcal-cell{
+  min-height:56px;padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+  position:relative;text-align:center}
+.mcal-cell:nth-child(7n){border-right:none}
+.mcal-cell.other{background:var(--bg);opacity:.5}
+.mcal-cell.sat .dnum{color:var(--blue)}
+.mcal-cell.sun .dnum{color:var(--red)}
+.mcal-cell.today{background:#f0f8ff}
+.dnum{font-size:11px;font-weight:500;margin-bottom:3px}
+.dot-row{display:flex;justify-content:center;gap:2px;flex-wrap:wrap}
+.dot{width:6px;height:6px;border-radius:50%}
+.dot-A{background:var(--blue)}
+.dot-B{background:var(--amber)}
+
+/* View toggle */
+.view-toggle{display:flex;gap:4px;margin-bottom:18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:3px;width:fit-content}
+.vtab{padding:5px 16px;font-size:13px;border-radius:5px;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:inherit}
+.vtab:hover{color:var(--text)}
+.vtab.active{background:var(--surface);color:var(--text);font-weight:500}
+
+/* Legend */
+.legend{display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+
+/* Notice */
+.notice{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--text2);
+  display:flex;gap:8px;align-items:flex-start;line-height:1.7}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">
+    三経 シフト確認
+    <span class="badge badge-worker">作業者</span>
+  </div>
+  <div class="last-update" id="last-update">読み込み中...</div>
+</div>
+
+<div class="main">
+
+  <div class="notice">
+    📋　確定したシフトのみ表示しています。希望日の変更・追加は管理者にご連絡ください。
+  </div>
+
+  <!-- Month nav -->
+  <div class="cal-header">
+    <div class="cal-nav"><button onclick="prevMonth()">‹</button></div>
+    <div class="cal-title" id="cal-title"></div>
+    <div class="cal-nav"><button onclick="nextMonth()">›</button></div>
+  </div>
+
+  <!-- View toggle -->
+  <div class="view-toggle">
+    <button class="vtab active" onclick="switchView('list',this)">リスト</button>
+    <button class="vtab" onclick="switchView('calendar',this)">カレンダー</button>
+  </div>
+
+  <!-- List view -->
+  <div id="view-list">
+    <div class="shift-list" id="shift-list"></div>
+  </div>
+
+  <!-- Calendar view -->
+  <div id="view-calendar" style="display:none">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Worker A</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Worker B</div>
+    </div>
+    <div class="mcal">
+      <div class="mcal-head">
+        <div class="mcal-dn">月</div><div class="mcal-dn">火</div><div class="mcal-dn">水</div>
+        <div class="mcal-dn">木</div><div class="mcal-dn">金</div>
+        <div class="mcal-dn sat">土</div><div class="mcal-dn sun">日</div>
+      </div>
+      <div class="mcal-body" id="mcal-body"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== CONFIG =====
+// GAS URLをここに入力（admin.htmlの設定タブでURLを確認）
+const GAS_URL = localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbw2fE0PFm8MrTYbVdefJwcEU70V7ouvHmjBZFK8_JOawN0Cavou26mQYKwq6l56w_UB/exec';
+
+// ===== STATE =====
+let confirmed = [];
+let workerNames = JSON.parse(localStorage.getItem('workerNames')||'{"秋和　千絵里":"秋和　千絵里","山内　比奈子":"山内　比奈子"}');
+let viewYear = new Date().getFullYear();
+let viewMonth = new Date().getMonth();
+let currentView = 'list';
+
+// ===== LOAD DATA =====
+async function loadData(){
+  // まずlocalStorageから確定データを取得
+  const local = JSON.parse(localStorage.getItem('confirmed')||'[]');
+  if(local.length) confirmed = local;
+
+  // GASが設定されていればサーバーから取得
+  if(GAS_URL){
+    try{
+      const res = await fetch(GAS_URL+'?action=get');
+      const json = await res.json();
+      if(json.confirmed?.length){
+        confirmed = json.confirmed;
+        localStorage.setItem('confirmed', JSON.stringify(confirmed));
+      }
+      if(json.workerNames) workerNames = json.workerNames;
+      const now = new Date();
+      document.getElementById('last-update').textContent =
+        `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
+    } catch(e){
+      document.getElementById('last-update').textContent = '（オフライン）';
+    }
+  } else {
+    document.getElementById('last-update').textContent = '（ローカルデータ）';
+  }
+  renderAll();
+}
+
+// ===== WORKER INFO =====
+const WORKER_STYLES = [
+  {cls:'avatar-A', dot:'dot-A', initial:'A'},
+  {cls:'avatar-B', dot:'dot-B', initial:'B'},
+];
+function workerStyle(wid){
+  const ids=[...new Set(confirmed.map(c=>c.worker))];
+  const idx=ids.indexOf(wid);
+  return WORKER_STYLES[idx%WORKER_STYLES.length]||WORKER_STYLES[0];
+}
+function workerName(wid){ return workerNames[wid]||wid.slice(-6); }
+
+// ===== MONTH NAV =====
+const MONTHS=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+function prevMonth(){viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}renderAll();}
+function nextMonth(){viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}renderAll();}
+
+// ===== RENDER LIST =====
+function renderList(){
+  const el = document.getElementById('shift-list');
+  const DOW = ['日','月','火','水','木','金','土'];
+
+  const monthData = confirmed.filter(c=>{
+    const d = new Date(c.date);
+    return d.getFullYear()===viewYear && d.getMonth()===viewMonth;
+  });
+
+  if(!monthData.length){
+    el.innerHTML=`<div class="empty"><div class="icon">📅</div><p>この月の確定シフトはまだありません。<br>管理者が確定次第、ここに表示されます。</p></div>`;
+    return;
+  }
+
+  // group by date
+  const grouped = {};
+  for(const c of monthData){
+    if(!grouped[c.date]) grouped[c.date]={date:c.date,entries:[]};
+    grouped[c.date].entries.push(c);
+  }
+  const sorted = Object.values(grouped).sort((a,b)=>a.date.localeCompare(b.date));
+
+  el.innerHTML = sorted.map(g=>{
+    const d = new Date(g.date);
+    const dateNum = `${d.getDate()}`;
+    const dateSub = `${MONTHS[d.getMonth()]} ${DOW[d.getDay()]}曜日`;
+    const workers = g.entries.map(e=>{
+      const st = workerStyle(e.worker);
+      return `<div class="shift-worker-row">
+        <div class="worker-avatar ${st.cls}">${st.initial}</div>
+        <div class="worker-detail">
+          <div class="worker-name">${workerName(e.worker)}</div>
+          <div class="worker-time">${e.time}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="shift-card">
+      <div class="shift-date-bar">
+        <div class="shift-date-num">${dateNum}</div>
+        <div class="shift-date-sub">${dateSub}</div>
+      </div>
+      <div class="shift-workers">${workers}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== RENDER CALENDAR =====
+function renderCalendar(){
+  document.getElementById('cal-title').textContent = `${viewYear}年 ${MONTHS[viewMonth]}`;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const first = new Date(viewYear,viewMonth,1);
+  let startDow = first.getDay(); startDow = startDow===0?6:startDow-1;
+  const daysInMonth = new Date(viewYear,viewMonth+1,0).getDate();
+  const prevDays = new Date(viewYear,viewMonth,0).getDate();
+  const totalCells = Math.ceil((startDow+daysInMonth)/7)*7;
+
+  const confByDate = {};
+  for(const c of confirmed){
+    const d=new Date(c.date);
+    if(d.getFullYear()===viewYear&&d.getMonth()===viewMonth){
+      if(!confByDate[c.date]) confByDate[c.date]=[];
+      confByDate[c.date].push(c);
+    }
+  }
+
+  let html='';
+  for(let i=0;i<totalCells;i++){
+    let day,cls='mcal-cell';
+    if(i<startDow){day=prevDays-startDow+i+1;cls+=' other';}
+    else if(i>=startDow+daysInMonth){day=i-startDow-daysInMonth+1;cls+=' other';}
+    else{
+      day=i-startDow+1;
+      const dow=i%7;
+      if(dow===5) cls+=' sat';
+      if(dow===6) cls+=' sun';
+      const d=new Date(viewYear,viewMonth,day);
+      if(d.getTime()===today.getTime()) cls+=' today';
+    }
+    const dk=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isOther=i<startDow||i>=startDow+daysInMonth;
+    const entries=confByDate[dk]||[];
+
+    const dots=entries.map(e=>{
+      const st=workerStyle(e.worker);
+      return `<div class="dot ${st.dot}" title="${workerName(e.worker)}: ${e.time}"></div>`;
+    }).join('');
+
+    html+=`<div class="${cls}" title="${entries.map(e=>workerName(e.worker)+': '+e.time).join('\n')}">
+      <div class="dnum">${day}</div>
+      <div class="dot-row">${dots}</div>
+    </div>`;
+  }
+  document.getElementById('mcal-body').innerHTML=html;
+}
+
+// ===== VIEW TOGGLE =====
+function switchView(name,btn){
+  document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  currentView=name;
+  document.getElementById('view-list').style.display=name==='list'?'block':'none';
+  document.getElementById('view-calendar').style.display=name==='calendar'?'block':'none';
+}
+
+function renderAll(){
+  document.getElementById('cal-title').textContent=`${viewYear}年 ${MONTHS[viewMonth]}`;
+  renderList();
+  renderCalendar();
+}
+
+// ===== INIT =====
+loadData();
+</script>
+</body>
+</html>
